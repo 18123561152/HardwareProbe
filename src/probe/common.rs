@@ -9,17 +9,26 @@ pub(crate) struct CommonHardware {
 
 pub(crate) fn collect_common() -> Result<CommonHardware, HardwareProbeError> {
     let system = System::new_all();
-    let disks = Disks::new_with_refreshed_list();
-    let disk_available_bytes = disks.list().iter().try_fold(0_u64, |total, disk| {
-        total.checked_add(disk.available_space()).ok_or_else(|| {
-            HardwareProbeError::DiskError("sum of available disk space exceeds u64".to_owned())
-        })
+    let current_dir = std::env::current_dir().map_err(|error| {
+        HardwareProbeError::DiskError(format!("cannot read current directory: {error}"))
     })?;
+    let disks = Disks::new_with_refreshed_list();
+    let disk = disks
+        .list()
+        .iter()
+        .filter(|disk| current_dir.starts_with(disk.mount_point()))
+        .max_by_key(|disk| disk.mount_point().components().count())
+        .ok_or_else(|| {
+            HardwareProbeError::DiskError(format!(
+                "no visible disk contains current directory {}",
+                current_dir.display()
+            ))
+        })?;
 
     Ok(CommonHardware {
         cpu_threads: system.cpus().len(),
         memory_bytes: system.total_memory(),
-        disk_available_bytes,
+        disk_available_bytes: disk.available_space(),
     })
 }
 

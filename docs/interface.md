@@ -17,7 +17,7 @@ pub struct HardwareProfile {
 
 - `cpu_threads`：系统可见的逻辑 CPU 线程数，不是物理核心数。
 - `memory_bytes`：物理内存总量，单位为字节。
-- `disk_available_bytes`：`sysinfo` 当前列出的所有磁盘可用空间之和，单位为字节；没有可见磁盘时为 `0`。
+- `disk_available_bytes`：进程当前工作目录所在文件系统的可用空间，单位为字节；Windows 对应工作目录所在卷，Linux/macOS 对应挂载该目录的文件系统。不累加其他磁盘。
 - `accelerators`：成功识别的加速器列表。无 GPU 或 GPU 探测失败时可为空。
 
 ### `AcceleratorProfile`
@@ -73,7 +73,7 @@ pub enum HardwareProbeError {
 
 - `DetectionFailed`：阻塞探测任务无法启动/完成等整体探测失败。
 - `GpuDriverUnavailable`：平台内部 GPU 探测器用于标记驱动或 GPU 查询不可用；`inspect()` 会捕获这类 GPU 错误并降级，不会因 GPU 单独失败而返回此错误。
-- `DiskError`：磁盘可用空间汇总超出 `u64` 可表示范围。
+- `DiskError`：无法读取当前工作目录，或该目录无法匹配到 `sysinfo` 可见磁盘。
 - `UnsupportedPlatform`：后备探测器在非 Linux/macOS/Windows 目标上被调用。
 
 该类型实现 `std::error::Error` 和 `Display`。
@@ -122,7 +122,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 | --- | --- | --- |
 | `HardwareProfile::cpu_threads` | `cpu_threads` | 逻辑 CPU 线程数，保持 `usize` 数值 |
 | `HardwareProfile::memory_bytes` | `memory_bytes` | 物理内存总量，字节 |
-| `HardwareProfile::disk_available_bytes` | `disk_available_bytes` | 可见磁盘可用空间总和，字节 |
+| `HardwareProfile::disk_available_bytes` | `disk_available_bytes` | 当前工作目录所在文件系统的可用空间，字节 |
 | `HardwareProfile::accelerators` | `accelerators` | 加速器数组 |
 | `AcceleratorProfile::kind` | `kind` | `Nvidia`、`Amd`、`Intel` 或 `Apple` |
 | `AcceleratorProfile::name` | `name` | 设备名称字符串 |

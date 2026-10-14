@@ -7,7 +7,7 @@ pub struct HardwareProfile {
     pub cpu_threads: usize,
     /// Total physical memory, in bytes.
     pub memory_bytes: u64,
-    /// Sum of available space across all visible disks, in bytes.
+    /// Available space on the filesystem containing the current working directory, in bytes.
     pub disk_available_bytes: u64,
     /// Detected accelerators. This can be empty when GPU probing is unavailable.
     pub accelerators: Vec<AcceleratorProfile>,

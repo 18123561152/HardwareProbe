@@ -71,13 +71,13 @@ Linux sysfs 枚举会跳过 NVIDIA vendor ID，避免与 NVML 返回的 NVIDIA �
 
 1. `main.rs` 构造 `SystemHardwareProbe` 并调用 `inspect().await`。
 2. `inspect()` 把同步工作提交给 `tokio::task::spawn_blocking`。
-3. 编译期所选平台实现调用 `probe/common.rs`，通过 `sysinfo` 读取 CPU、物理内存和磁盘可用空间。
+3. 编译期所选平台实现调用 `probe/common.rs`，通过 `sysinfo` 读取 CPU、物理内存和磁盘列表；以当前工作目录为目标，选择挂载点是该目录最长组件前缀的磁盘。
 4. 平台模块探测 GPU；GPU 子探测器失败时丢弃失败分支结果，并保留其余来源已找到的设备。
 5. 平台实现把通用资源和加速器组成 `HardwareProfile` 返回；调用方可直接使用或通过 serde 序列化。
 
 ## 错误处理与降级
 
-- 公共 CPU/内存读取使用 `sysinfo`；磁盘汇总采用 checked addition，发生 `u64` 溢出时返回 `DiskError`。
+- 公共 CPU/内存读取使用 `sysinfo`；当前工作目录无法读取或未匹配到可见磁盘时返回 `DiskError`。
 - `spawn_blocking` 任务加入失败或 panic 时映射为 `DetectionFailed`。
 - NVML 初始化、查询、系统命令启动/退出、JSON 解析、sysfs 读取错误均视为 GPU 子系统错误；上层吞并错误并返回空列表或部分成功列表。
 - `GpuDriverUnavailable` 用于平台内部标记 GPU 驱动/API 不可用。因 GPU 降级约定，`inspect()` 不向调用方传播该变体。

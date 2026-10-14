@@ -8,7 +8,7 @@
 
 - 检测 CPU 逻辑线程数，字段为 `cpu_threads`。
 - 检测物理内存总量，字段为 `memory_bytes`，单位为字节。
-- 汇总当前系统可见磁盘的可用空间，字段为 `disk_available_bytes`，单位为字节。
+- 检测进程当前工作目录所在文件系统的可用空间，字段为 `disk_available_bytes`，单位为字节；不累加其他磁盘。
 - 检测可识别的 GPU/加速器，字段为 `accelerators`；每项包含厂商类别、名称和可选显存字节数。
 - 支持 Linux、macOS 和 Windows，并通过编译期条件分发选择平台实现。
 - 提供异步 `inspect()` API；将同步系统调用卸载到 Tokio 的阻塞线程池。
@@ -49,7 +49,8 @@
 
 ## 验收标准
 
-- 在支持平台上，`inspect().await` 返回 CPU 逻辑线程数、物理内存总量、磁盘可用空间总和和加速器列表。
+- 在支持平台上，`inspect().await` 返回 CPU 逻辑线程数、物理内存总量、当前工作目录所在文件系统的可用空间和加速器列表。
+- 当前工作目录无法读取或无法匹配到系统可见磁盘时，`inspect()` 返回 `DiskError`。
 - 在没有 GPU 或 GPU 驱动不可用的 Linux 容器中，`inspect()` 仍返回 `Ok`，且 `accelerators` 可以为空。
 - Linux sysfs 中 AMD/Intel GPU 的厂商 ID 可映射为对应 `AcceleratorKind`，并读取可用的 VRAM 字节数。
 - macOS JSON 可解析 Apple、AMD、Intel 等可识别加速器；Apple GPU 显存不错误地报告为整机统一内存。
