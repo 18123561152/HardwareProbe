@@ -8,7 +8,7 @@ fn deserialize_profile(value: Value) -> Result<HardwareProfile, serde_json::Erro
 #[test]
 fn profile_accepts_numeric_boundaries_and_unknown_memory() {
     let value = json!({
-        "cpu_threads": usize::MAX,
+        "cpu": "Example CPU Model",
         "memory_bytes": u64::MAX,
         "disk_available_bytes": 0,
         "accelerators": [{
@@ -19,7 +19,7 @@ fn profile_accepts_numeric_boundaries_and_unknown_memory() {
     });
     let profile = deserialize_profile(value).expect("valid boundary values should deserialize");
 
-    assert_eq!(profile.cpu_threads, usize::MAX);
+    assert_eq!(profile.cpu, "Example CPU Model");
     assert_eq!(profile.memory_bytes, u64::MAX);
     assert_eq!(profile.disk_available_bytes, 0);
     assert_eq!(
@@ -35,7 +35,7 @@ fn profile_accepts_numeric_boundaries_and_unknown_memory() {
 #[test]
 fn profile_rejects_missing_or_wrongly_typed_fields() {
     let valid = json!({
-        "cpu_threads": 4,
+        "cpu": "Example CPU Model",
         "memory_bytes": 1024,
         "disk_available_bytes": 2048,
         "accelerators": []
@@ -44,25 +44,30 @@ fn profile_rejects_missing_or_wrongly_typed_fields() {
     for invalid in [
         json!({}),
         json!({
-            "cpu_threads": -1,
             "memory_bytes": 1024,
             "disk_available_bytes": 2048,
             "accelerators": []
         }),
         json!({
-            "cpu_threads": 4,
+            "cpu": 4,
+            "memory_bytes": 1024,
+            "disk_available_bytes": 2048,
+            "accelerators": []
+        }),
+        json!({
+            "cpu": "Example CPU Model",
             "memory_bytes": -1,
             "disk_available_bytes": 2048,
             "accelerators": []
         }),
         json!({
-            "cpu_threads": 4,
+            "cpu": "Example CPU Model",
             "memory_bytes": 1024,
             "disk_available_bytes": "2048",
             "accelerators": []
         }),
         json!({
-            "cpu_threads": 4,
+            "cpu": "Example CPU Model",
             "memory_bytes": 1024,
             "disk_available_bytes": 2048,
             "accelerators": null
@@ -78,6 +83,18 @@ fn profile_rejects_missing_or_wrongly_typed_fields() {
 }
 
 #[test]
+fn unknown_cpu_fallback_is_a_valid_public_value() {
+    let value = json!({
+        "cpu": "Unknown CPU",
+        "memory_bytes": 0,
+        "disk_available_bytes": 0,
+        "accelerators": []
+    });
+    let profile = deserialize_profile(value).expect("fallback CPU model should be valid");
+    assert_eq!(profile.cpu, "Unknown CPU");
+}
+
+#[test]
 fn accelerator_rejects_unknown_kinds_and_invalid_memory_types() {
     for accelerator in [
         json!({"kind": "Cuda", "name": "GPU", "memory_bytes": 1024}),
@@ -86,7 +103,7 @@ fn accelerator_rejects_unknown_kinds_and_invalid_memory_types() {
         json!({"kind": "Nvidia", "name": 7, "memory_bytes": null}),
     ] {
         let value = json!({
-            "cpu_threads": 1,
+            "cpu": "Example CPU Model",
             "memory_bytes": 1,
             "disk_available_bytes": 1,
             "accelerators": [accelerator]
@@ -101,7 +118,7 @@ fn accelerator_rejects_unknown_kinds_and_invalid_memory_types() {
 #[test]
 fn out_of_range_json_integers_are_rejected() {
     let input = r#"{
-        "cpu_threads": 1,
+        "cpu": "Example CPU Model",
         "memory_bytes": 18446744073709551616,
         "disk_available_bytes": 1,
         "accelerators": []

@@ -4,7 +4,7 @@
 
 ## 功能
 
-- 检测 CPU 逻辑线程数和物理内存总量。
+- 检测 CPU 型号和物理内存总量。
 - 检测当前工作目录所在盘/文件系统的可用空间，不累加其他磁盘。
 - 尽力识别 GPU 厂商、设备名称和可报告的显存容量。
 - 在 Linux、macOS、Windows 上通过编译期平台分发使用独立实现。
@@ -20,7 +20,7 @@
 | macOS | 解析 `system_profiler SPDisplaysDataType -json` | `system_profiler` |
 | Windows | NVIDIA 使用 NVML；AMD/Intel 通过 CIM 查询 | NVIDIA 驱动/NVML；PowerShell 和 `Get-CimInstance` |
 
-GPU 信息依赖驱动、系统工具和权限，无法检测时加速器列表可能为空或不完整。Apple Silicon 使用统一内存，不会将系统内存误报为独立显存，其 `memory_bytes` 为 `null`。其他操作系统会编译后备实现，调用探测接口时返回 `UnsupportedPlatform`。
+GPU 信息依赖驱动、系统工具和权限，无法检测时加速器列表可能为空或不完整。Apple Silicon 使用统一内存，其 `memory_bytes` 输出系统物理内存总量，不代表独立 VRAM。其他操作系统会编译后备实现，调用探测接口时返回 `UnsupportedPlatform`。
 
 ## 运行示例
 
@@ -51,7 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```json
 {
-  "cpu_threads": 8,
+  "cpu": "Example CPU Model",
   "memory_bytes": 34359738368,
   "disk_available_bytes": 512000000000,
   "accelerators": [
@@ -64,13 +64,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-容量单位均为字节。`cpu_threads` 表示逻辑线程数。显存未知或不能作为独立显存报告时，`memory_bytes` 为 `null`；没有检测到加速器时，`accelerators` 为空数组。
+`cpu` 为操作系统报告的 CPU 型号，无法获取时为 `"Unknown CPU"`。内存和磁盘容量单位均为字节。Apple Silicon 的 `memory_bytes` 是统一系统内存总量；其他加速器显存未知时为 `null`。没有检测到加速器时，`accelerators` 为空数组。
 
 ## 公共接口
 
 - `SystemHardwareProbe::new()`：创建平台对应的硬件探测器。
 - `SystemHardwareProbe::inspect()`：异步返回 `Result<HardwareProfile, HardwareProbeError>`。
-- `HardwareProfile`：包含 `cpu_threads`、`memory_bytes`、`disk_available_bytes` 和 `accelerators`。
+- `HardwareProfile`：包含 `cpu`、`memory_bytes`、`disk_available_bytes` 和 `accelerators`。
 - `AcceleratorProfile`：包含 `kind`、`name` 和可选的 `memory_bytes`。
 - `AcceleratorKind`：加速器类别，包括 `Nvidia`、`Amd`、`Intel` 和 `Apple`。
 - `Platform`、`detect_platform()`、`current_os()`、`current_arch()`：提供编译目标平台信息。

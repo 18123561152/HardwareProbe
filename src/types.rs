@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 /// Hardware facts visible to the current process.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HardwareProfile {
-    /// Number of logical CPU threads.
-    pub cpu_threads: usize,
+    /// CPU model reported by the operating system.
+    pub cpu: String,
     /// Total physical memory, in bytes.
     pub memory_bytes: u64,
     /// Available space on the filesystem containing the current working directory, in bytes.
@@ -18,7 +18,8 @@ pub struct HardwareProfile {
 pub struct AcceleratorProfile {
     pub kind: AcceleratorKind,
     pub name: String,
-    /// Dedicated VRAM in bytes, or `None` when it cannot be reported separately.
+    /// GPU memory in bytes; on Apple Silicon this is the unified system memory total.
+    /// `None` means the platform could not report a usable capacity.
     pub memory_bytes: Option<u64>,
 }
 

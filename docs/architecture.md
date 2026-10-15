@@ -62,7 +62,7 @@ pub use self::unsupported::SystemHardwareProbe;
 | 平台 | NVIDIA 方案 | 其他 GPU 方案 | 统一内存处理 |
 | --- | --- | --- | --- |
 | Linux | `nvml-wrapper` 初始化 NVML 并枚举设备 | 遍历 `/sys/class/drm/card*/device`，按 PCI vendor ID 识别 AMD/Intel，读取 `mem_info_vram_total` | 不适用 |
-| macOS | 解析 `system_profiler SPDisplaysDataType -json` 的设备信息 | 从同一 JSON 解析 Apple/AMD/Intel 厂商与型号 | Apple 设备显存为 `None`，不把系统内存总量填入独立显存 |
+| macOS | 解析 `system_profiler SPDisplaysDataType -json` 的设备信息 | 从同一 JSON 解析 Apple/AMD/Intel 厂商与型号 | Apple 设备使用 `sysinfo` 系统物理内存总量，不表示独立 VRAM |
 | Windows | `nvml-wrapper` 初始化 NVML 并枚举设备 | PowerShell 执行 `Get-CimInstance Win32_VideoController` 并解析 JSON；`AdapterRAM` 先安全解析为 `u64`，32 位上限按未知容量处理 | 不适用 |
 
 Linux sysfs 枚举会跳过 NVIDIA vendor ID，避免与 NVML 返回的 NVIDIA 设备重复。单个设备读取失败时不影响其他设备。
@@ -71,7 +71,7 @@ Linux sysfs 枚举会跳过 NVIDIA vendor ID，避免与 NVML 返回的 NVIDIA �
 
 1. `main.rs` 构造 `SystemHardwareProbe` 并调用 `inspect().await`。
 2. `inspect()` 把同步工作提交给 `tokio::task::spawn_blocking`。
-3. 编译期所选平台实现调用 `probe/common.rs`，通过 `sysinfo` 读取 CPU、物理内存和磁盘列表；以当前工作目录为目标，选择挂载点是该目录最长组件前缀的磁盘。
+3. 编译期所选平台实现调用 `probe/common.rs`，通过 `sysinfo` 读取首个 CPU 的型号和物理内存；再以当前工作目录为目标，选择挂载点是该目录最长组件前缀的磁盘。
 4. 平台模块探测 GPU；GPU 子探测器失败时丢弃失败分支结果，并保留其余来源已找到的设备。
 5. 平台实现把通用资源和加速器组成 `HardwareProfile` 返回；调用方可直接使用或通过 serde 序列化。
 

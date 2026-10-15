@@ -8,14 +8,14 @@ crate 路径为 `hardware_probe`。所有公开字段和枚举均实现 serde �
 
 ```rust
 pub struct HardwareProfile {
-    pub cpu_threads: usize,
+    pub cpu: String,
     pub memory_bytes: u64,
     pub disk_available_bytes: u64,
     pub accelerators: Vec<AcceleratorProfile>,
 }
 ```
 
-- `cpu_threads`：系统可见的逻辑 CPU 线程数，不是物理核心数。
+- `cpu`：系统报告的 CPU 型号；首尾空白会被清理，无法读取时为 `"Unknown CPU"`。
 - `memory_bytes`：物理内存总量，单位为字节。
 - `disk_available_bytes`：进程当前工作目录所在文件系统的可用空间，单位为字节；Windows 对应工作目录所在卷，Linux/macOS 对应挂载该目录的文件系统。不累加其他磁盘。
 - `accelerators`：成功识别的加速器列表。无 GPU 或 GPU 探测失败时可为空。
@@ -32,7 +32,7 @@ pub struct AcceleratorProfile {
 
 - `kind`：加速器厂商/类别。
 - `name`：操作系统或 GPU 驱动报告的设备名称；Linux 无法取得型号时使用可读的厂商和 DRM 卡号。
-- `memory_bytes`：设备可报告的专用显存容量，单位为字节。不可用或无法区分独立容量时为 `None`。
+- `memory_bytes`：设备内存容量，单位为字节。Apple Silicon 使用系统物理内存总量表示统一内存；其他设备在无法报告容量时为 `None`。
 
 ### `AcceleratorKind`
 
@@ -120,10 +120,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 | 本项目字段 | 契约字段 | 含义/转换 |
 | --- | --- | --- |
-| `HardwareProfile::cpu_threads` | `cpu_threads` | 逻辑 CPU 线程数，保持 `usize` 数值 |
+| `HardwareProfile::cpu` | `cpu` | CPU 型号字符串。该字段直接替换旧 `cpu_threads`，不再与 burncloud-node 的线程数字段兼容 |
 | `HardwareProfile::memory_bytes` | `memory_bytes` | 物理内存总量，字节 |
 | `HardwareProfile::disk_available_bytes` | `disk_available_bytes` | 当前工作目录所在文件系统的可用空间，字节 |
 | `HardwareProfile::accelerators` | `accelerators` | 加速器数组 |
 | `AcceleratorProfile::kind` | `kind` | `Nvidia`、`Amd`、`Intel` 或 `Apple` |
 | `AcceleratorProfile::name` | `name` | 设备名称字符串 |
-| `AcceleratorProfile::memory_bytes` | `memory_bytes` | 显存字节数；`None` 序列化为 `null`，未知/统一内存不冒充专用显存 |
+| `AcceleratorProfile::memory_bytes` | `memory_bytes` | 显存或统一内存字节数；Apple Silicon 使用系统物理内存总量，其他设备未知时为 `None` 并序列化为 `null` |

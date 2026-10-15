@@ -6,7 +6,7 @@
 
 ## 范围内的功能（In Scope）
 
-- 检测 CPU 逻辑线程数，字段为 `cpu_threads`。
+- 检测 CPU 型号，字段为 `cpu`；型号不可用时使用 `"Unknown CPU"`。
 - 检测物理内存总量，字段为 `memory_bytes`，单位为字节。
 - 检测进程当前工作目录所在文件系统的可用空间，字段为 `disk_available_bytes`，单位为字节；不累加其他磁盘。
 - 检测可识别的 GPU/加速器，字段为 `accelerators`；每项包含厂商类别、名称和可选显存字节数。
@@ -25,7 +25,7 @@
 - 不安装、升级、配置或修复显卡驱动及系统依赖。
 - 不采集 GPU/CPU 温度、风扇转速、功耗、利用率、时钟频率或进程占用。
 - 不承诺返回设备的稳定排序、唯一 ID、拓扑、NUMA 关系或容器宿主机完整视图。
-- 不承诺将 Apple Silicon 统一内存拆分成 CPU/GPU 专属容量；Apple GPU 的独立显存返回 `None`。
+- 不承诺将 Apple Silicon 统一内存拆分成 CPU/GPU 专属容量；Apple GPU 的 `memory_bytes` 使用系统物理内存总量。
 
 ## 非功能性需求
 
@@ -49,11 +49,12 @@
 
 ## 验收标准
 
-- 在支持平台上，`inspect().await` 返回 CPU 逻辑线程数、物理内存总量、当前工作目录所在文件系统的可用空间和加速器列表。
+- 在支持平台上，`inspect().await` 返回 CPU 型号、物理内存总量、当前工作目录所在文件系统的可用空间和加速器列表。
+- 输出包含 `cpu` 字符串字段，不再输出旧字段 `cpu_threads`。
 - 当前工作目录无法读取或无法匹配到系统可见磁盘时，`inspect()` 返回 `DiskError`。
 - 在没有 GPU 或 GPU 驱动不可用的 Linux 容器中，`inspect()` 仍返回 `Ok`，且 `accelerators` 可以为空。
 - Linux sysfs 中 AMD/Intel GPU 的厂商 ID 可映射为对应 `AcceleratorKind`，并读取可用的 VRAM 字节数。
-- macOS JSON 可解析 Apple、AMD、Intel 等可识别加速器；Apple GPU 显存不错误地报告为整机统一内存。
+- macOS JSON 可解析 Apple、AMD、Intel 等可识别加速器；Apple GPU 的 `memory_bytes` 等于系统物理内存总量。
 - Windows 单个 CIM `AdapterRAM` 不被窄化整数转换溢出；32 位上限哨兵值按未知容量处理。
 - GPU 检测失败不覆盖已经成功检测到的其他平台 GPU。
 - 非 Linux/macOS/Windows 目标的后备 `inspect()` 返回 `UnsupportedPlatform`。

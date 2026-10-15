@@ -61,6 +61,13 @@ fn public_errors_format_untrusted_messages_without_panicking() {
 
 #[tokio::test]
 async fn inspect_obeys_the_compiled_platform_contract() {
+    let system = sysinfo::System::new_all();
+    let expected_cpu = system
+        .cpus()
+        .first()
+        .map(|cpu| cpu.brand().trim())
+        .filter(|brand| !brand.is_empty())
+        .unwrap_or("Unknown CPU");
     let result = SystemHardwareProbe::new().inspect().await;
 
     if detect_platform() == Platform::Other {
@@ -72,9 +79,13 @@ async fn inspect_obeys_the_compiled_platform_contract() {
     }
 
     let profile = result.expect("supported platforms must return common hardware facts");
-    assert!(profile.cpu_threads > 0);
+    assert_eq!(profile.cpu, expected_cpu);
+    assert!(!profile.cpu.trim().is_empty());
     assert!(!profile
         .accelerators
         .iter()
         .any(|accelerator| accelerator.name.trim().is_empty()));
+    let serialized = serde_json::to_value(profile).unwrap();
+    assert!(serialized["cpu"].is_string());
+    assert!(serialized.get("cpu_threads").is_none());
 }

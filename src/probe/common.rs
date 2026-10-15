@@ -2,7 +2,7 @@ use crate::{error::HardwareProbeError, types::HardwareProfile};
 use sysinfo::{Disks, System};
 
 pub(crate) struct CommonHardware {
-    pub cpu_threads: usize,
+    pub cpu: String,
     pub memory_bytes: u64,
     pub disk_available_bytes: u64,
 }
@@ -25,8 +25,16 @@ pub(crate) fn collect_common() -> Result<CommonHardware, HardwareProbeError> {
             ))
         })?;
 
+    let cpu = system
+        .cpus()
+        .first()
+        .map(|cpu| cpu.brand().trim())
+        .filter(|brand| !brand.is_empty())
+        .unwrap_or("Unknown CPU")
+        .to_owned();
+
     Ok(CommonHardware {
-        cpu_threads: system.cpus().len(),
+        cpu,
         memory_bytes: system.total_memory(),
         disk_available_bytes: disk.available_space(),
     })
@@ -38,21 +46,10 @@ impl CommonHardware {
         accelerators: Vec<crate::types::AcceleratorProfile>,
     ) -> HardwareProfile {
         HardwareProfile {
-            cpu_threads: self.cpu_threads,
+            cpu: self.cpu,
             memory_bytes: self.memory_bytes,
             disk_available_bytes: self.disk_available_bytes,
             accelerators,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn common_hardware_reports_nonzero_cpu_count() {
-        let common = collect_common().expect("common hardware collection should succeed");
-        assert!(common.cpu_threads > 0);
     }
 }

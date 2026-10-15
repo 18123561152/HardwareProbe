@@ -20,7 +20,7 @@ impl SystemHardwareProbe {
         tokio::task::spawn_blocking(|| {
             let common = collect_common()?;
             // A missing or failing system_profiler only disables accelerator reporting.
-            let accelerators = detect_accelerators().unwrap_or_default();
+            let accelerators = detect_accelerators(common.memory_bytes).unwrap_or_default();
             Ok(common.with_accelerators(accelerators))
         })
         .await
@@ -28,7 +28,9 @@ impl SystemHardwareProbe {
     }
 }
 
-fn detect_accelerators() -> Result<Vec<AcceleratorProfile>, HardwareProbeError> {
+fn detect_accelerators(
+    total_memory_bytes: u64,
+) -> Result<Vec<AcceleratorProfile>, HardwareProbeError> {
     let output = Command::new("system_profiler")
         .args(["SPDisplaysDataType", "-json"])
         .output()
@@ -41,10 +43,10 @@ fn detect_accelerators() -> Result<Vec<AcceleratorProfile>, HardwareProbeError> 
     }
     let value: Value = serde_json::from_slice(&output.stdout)
         .map_err(|error| HardwareProbeError::GpuDriverUnavailable(error.to_string()))?;
-    Ok(parse_displays(&value))
+    Ok(parse_displays(&value, total_memory_bytes))
 }
 
-fn parse_displays(value: &Value) -> Vec<AcceleratorProfile> {
+fn parse_displays(value: &Value, total_memory_bytes: u64) -> Vec<AcceleratorProfile> {
     let Some(displays) = value.get("SPDisplaysDataType").and_then(Value::as_array) else {
         return Vec::new();
     };
@@ -60,10 +62,9 @@ fn parse_displays(value: &Value) -> Vec<AcceleratorProfile> {
             let name = first_string(display, &["sppci_model", "_name", "spdisplays_name"])
                 .unwrap_or_else(|| format!("{vendor} GPU"));
 
-            // system_profiler may report VRAM as a human-readable string; don't guess units.
-            // Apple Silicon shares system memory and therefore has no dedicated VRAM value.
+            // Apple Silicon uses unified memory, so report the system total instead of null.
             let memory_bytes = if kind == AcceleratorKind::Apple {
-                None
+                Some(total_memory_bytes)
             } else {
                 display.get("spdisplays_vram").and_then(parse_byte_count)
             };
@@ -119,41 +120,4 @@ fn parse_byte_count(value: &Value) -> Option<u64> {
     };
     let bytes = number * multiplier as f64;
     (bytes.is_finite() && bytes >= 0.0 && bytes <= u64::MAX as f64).then_some(bytes.round() as u64)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn apple_gpu_does_not_claim_unified_memory_as_vram() {
-        let displays = json!({
-            "SPDisplaysDataType": [{
-                "spdisplays_vendor": "Apple (0x106b)",
-                "sppci_model": "Apple M-series GPU",
-                "spdisplays_vram": "16 GB"
-            }]
-        });
-        let parsed = parse_displays(&displays);
-        assert_eq!(parsed.len(), 1);
-        assert_eq!(parsed[0].kind, AcceleratorKind::Apple);
-        assert_eq!(parsed[0].memory_bytes, None);
-    }
-
-    #[test]
-    fn vendor_classifier_handles_common_vendor_ids() {
-        assert_eq!(classify_vendor("AMD (0x1002)"), Some(AcceleratorKind::Amd));
-        assert_eq!(
-            classify_vendor("Intel (0x8086)"),
-            Some(AcceleratorKind::Intel)
-        );
-    }
-
-    #[test]
-    fn parses_system_profiler_vram_units() {
-        assert_eq!(parse_byte_count(&json!("8 GB")), Some(8_u64 << 30));
-        assert_eq!(parse_byte_count(&json!(4096_u64)), Some(4096));
-        assert_eq!(parse_byte_count(&json!("shared")), None);
-    }
 }

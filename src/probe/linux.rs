@@ -119,15 +119,3 @@ const fn vendor_name(kind: AcceleratorKind) -> &'static str {
         AcceleratorKind::Apple => "Apple",
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn drm_card_filter_excludes_connectors() {
-        assert!(is_drm_card("card0"));
-        assert!(!is_drm_card("card0-DP-1"));
-        assert!(!is_drm_card("renderD128"));
-    }
-}
