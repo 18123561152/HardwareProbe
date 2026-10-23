@@ -10,6 +10,7 @@
 - 检测物理内存总量，字段为 `memory_bytes`，单位为字节。
 - 检测进程当前工作目录所在文件系统的可用空间，字段为 `disk_available_bytes`，单位为字节；不累加其他磁盘。
 - 检测可识别的 GPU/加速器，字段为 `accelerators`；每项包含厂商类别、名称和可选显存字节数。
+- 无法识别厂商但已被平台接口发现的加速器保留在 `accelerators` 中，并使用 `AcceleratorKind::Other`。
 - 支持 Linux、macOS 和 Windows，并通过编译期条件分发选择平台实现。
 - 提供异步 `inspect()` API；将同步系统调用卸载到 Tokio 的阻塞线程池。
 - GPU 子系统不可用或检测失败时，仍返回 CPU、内存、磁盘结果，并将 GPU 结果降级为空列表或保留已成功检测到的设备。
@@ -54,6 +55,7 @@
 - 当前工作目录无法读取或无法匹配到系统可见磁盘时，`inspect()` 返回 `DiskError`。
 - 在没有 GPU 或 GPU 驱动不可用的 Linux 容器中，`inspect()` 仍返回 `Ok`，且 `accelerators` 可以为空。
 - Linux sysfs 中 AMD/Intel GPU 的厂商 ID 可映射为对应 `AcceleratorKind`，并读取可用的 VRAM 字节数。
+- Linux、macOS、Windows 发现但无法识别厂商的设备映射为 `AcceleratorKind::Other`，并保留设备名称和可获取的内存信息。
 - macOS JSON 可解析 Apple、AMD、Intel 等可识别加速器；Apple GPU 的 `memory_bytes` 等于系统物理内存总量。
 - Windows 单个 CIM `AdapterRAM` 不被窄化整数转换溢出；32 位上限哨兵值按未知容量处理。
 - GPU 检测失败不覆盖已经成功检测到的其他平台 GPU。

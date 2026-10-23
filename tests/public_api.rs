@@ -24,6 +24,7 @@ fn public_enums_round_trip_through_serde() {
         (AcceleratorKind::Amd, "\"Amd\""),
         (AcceleratorKind::Intel, "\"Intel\""),
         (AcceleratorKind::Apple, "\"Apple\""),
+        (AcceleratorKind::Other, "\"Other\""),
     ] {
         assert_eq!(serde_json::to_string(&kind).unwrap(), encoded);
         assert_eq!(
@@ -88,4 +89,16 @@ async fn inspect_obeys_the_compiled_platform_contract() {
     let serialized = serde_json::to_value(profile).unwrap();
     assert!(serialized["cpu"].is_string());
     assert!(serialized.get("cpu_threads").is_none());
+    for accelerator in serialized["accelerators"]
+        .as_array()
+        .expect("accelerators must serialize as an array")
+    {
+        let kind = accelerator["kind"]
+            .as_str()
+            .expect("accelerator kind must serialize as a string");
+        assert!(
+            matches!(kind, "Nvidia" | "Amd" | "Intel" | "Apple" | "Other"),
+            "unexpected accelerator kind: {kind}"
+        );
+    }
 }

@@ -90,7 +90,9 @@ fn parse_cim_devices(value: &Value) -> Vec<AcceleratorProfile> {
                 .get("AdapterCompatibility")
                 .and_then(Value::as_str)
                 .unwrap_or_default();
-            let kind = classify_vendor(name).or_else(|| classify_vendor(compatibility))?;
+            let kind = classify_vendor(name)
+                .or_else(|| classify_vendor(compatibility))
+                .unwrap_or(AcceleratorKind::Other);
             Some(AcceleratorProfile {
                 kind,
                 name: name.to_owned(),

@@ -65,9 +65,20 @@ fn detect_drm_accelerators() -> Vec<AcceleratorProfile> {
         }
 
         let device = entry.path().join("device");
-        let Some(kind) = read_vendor_kind(&device) else {
+        let Some(vendor) = read_vendor_id(&device) else {
+            let name =
+                read_device_name(&device).unwrap_or_else(|| format!("Unknown GPU ({card_name})"));
+            accelerators.push(AcceleratorProfile {
+                kind: AcceleratorKind::Other,
+                name,
+                memory_bytes: read_vram_bytes(&device),
+            });
             continue;
         };
+        if vendor == "0x10de" {
+            continue;
+        }
+        let kind = classify_vendor(&vendor);
         let name = read_device_name(&device)
             .unwrap_or_else(|| format!("{} GPU ({card_name})", vendor_name(kind)));
         let memory_bytes = read_vram_bytes(&device);
@@ -86,12 +97,17 @@ fn is_drm_card(name: &str) -> bool {
     })
 }
 
-fn read_vendor_kind(device: &Path) -> Option<AcceleratorKind> {
-    let vendor = fs::read_to_string(device.join("vendor")).ok()?;
-    match vendor.trim().to_ascii_lowercase().as_str() {
-        "0x1002" => Some(AcceleratorKind::Amd),
-        "0x8086" => Some(AcceleratorKind::Intel),
-        _ => None,
+fn read_vendor_id(device: &Path) -> Option<String> {
+    fs::read_to_string(device.join("vendor"))
+        .ok()
+        .map(|vendor| vendor.trim().to_ascii_lowercase())
+}
+
+const fn classify_vendor(vendor: &str) -> AcceleratorKind {
+    match vendor {
+        "0x1002" => AcceleratorKind::Amd,
+        "0x8086" => AcceleratorKind::Intel,
+        _ => AcceleratorKind::Other,
     }
 }
 
@@ -117,5 +133,6 @@ const fn vendor_name(kind: AcceleratorKind) -> &'static str {
         AcceleratorKind::Intel => "Intel",
         AcceleratorKind::Nvidia => "NVIDIA",
         AcceleratorKind::Apple => "Apple",
+        AcceleratorKind::Other => "Unknown",
     }
 }

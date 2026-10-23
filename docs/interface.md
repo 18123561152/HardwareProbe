@@ -42,10 +42,11 @@ pub enum AcceleratorKind {
     Amd,
     Intel,
     Apple,
+    Other,
 }
 ```
 
-JSON 序列化值使用 Rust 变体名称（例如 `"Nvidia"`）。
+JSON 序列化值使用 Rust 变体名称（例如 `"Nvidia"` 和 `"Other"`）。`Other` 表示平台已发现设备，但无法将其厂商映射到其它枚举值。
 
 ### `Platform`
 
@@ -124,6 +125,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 | `HardwareProfile::memory_bytes` | `memory_bytes` | 物理内存总量，字节 |
 | `HardwareProfile::disk_available_bytes` | `disk_available_bytes` | 当前工作目录所在文件系统的可用空间，字节 |
 | `HardwareProfile::accelerators` | `accelerators` | 加速器数组 |
-| `AcceleratorProfile::kind` | `kind` | `Nvidia`、`Amd`、`Intel` 或 `Apple` |
+| `AcceleratorProfile::kind` | `kind` | `Nvidia`、`Amd`、`Intel`、`Apple` 或 `Other` |
 | `AcceleratorProfile::name` | `name` | 设备名称字符串 |
 | `AcceleratorProfile::memory_bytes` | `memory_bytes` | 显存或统一内存字节数；Apple Silicon 使用系统物理内存总量，其他设备未知时为 `None` 并序列化为 `null` |

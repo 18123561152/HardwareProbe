@@ -57,8 +57,9 @@ fn parse_displays(value: &Value, total_memory_bytes: u64) -> Vec<AcceleratorProf
             let vendor = first_string(
                 display,
                 &["spdisplays_vendor", "sppci_vendor", "spdisplays_gpu_vendor"],
-            )?;
-            let kind = classify_vendor(&vendor)?;
+            )
+            .unwrap_or_else(|| "Unknown Vendor".to_owned());
+            let kind = classify_vendor(&vendor);
             let name = first_string(display, &["sppci_model", "_name", "spdisplays_name"])
                 .unwrap_or_else(|| format!("{vendor} GPU"));
 
@@ -86,18 +87,18 @@ fn first_string(value: &Value, keys: &[&str]) -> Option<String> {
         .map(str::to_owned)
 }
 
-fn classify_vendor(vendor: &str) -> Option<AcceleratorKind> {
+fn classify_vendor(vendor: &str) -> AcceleratorKind {
     let vendor = vendor.to_ascii_lowercase();
     if vendor.contains("apple") || vendor.contains("0x106b") {
-        Some(AcceleratorKind::Apple)
+        AcceleratorKind::Apple
     } else if vendor.contains("amd") || vendor.contains("ati") || vendor.contains("0x1002") {
-        Some(AcceleratorKind::Amd)
+        AcceleratorKind::Amd
     } else if vendor.contains("intel") || vendor.contains("0x8086") {
-        Some(AcceleratorKind::Intel)
+        AcceleratorKind::Intel
     } else if vendor.contains("nvidia") || vendor.contains("0x10de") {
-        Some(AcceleratorKind::Nvidia)
+        AcceleratorKind::Nvidia
     } else {
-        None
+        AcceleratorKind::Other
     }
 }
 

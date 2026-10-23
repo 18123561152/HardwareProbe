@@ -61,11 +61,11 @@ pub use self::unsupported::SystemHardwareProbe;
 
 | 平台 | NVIDIA 方案 | 其他 GPU 方案 | 统一内存处理 |
 | --- | --- | --- | --- |
-| Linux | `nvml-wrapper` 初始化 NVML 并枚举设备 | 遍历 `/sys/class/drm/card*/device`，按 PCI vendor ID 识别 AMD/Intel，读取 `mem_info_vram_total` | 不适用 |
+| Linux | `nvml-wrapper` 初始化 NVML 并枚举设备 | 遍历 `/sys/class/drm/card*/device`，按 PCI vendor ID 识别 AMD/Intel；其它已发现设备归为 `Other`，读取 `mem_info_vram_total` | 不适用 |
 | macOS | 解析 `system_profiler SPDisplaysDataType -json` 的设备信息 | 从同一 JSON 解析 Apple/AMD/Intel 厂商与型号 | Apple 设备使用 `sysinfo` 系统物理内存总量，不表示独立 VRAM |
-| Windows | `nvml-wrapper` 初始化 NVML 并枚举设备 | PowerShell 执行 `Get-CimInstance Win32_VideoController` 并解析 JSON；`AdapterRAM` 先安全解析为 `u64`，32 位上限按未知容量处理 | 不适用 |
+| Windows | `nvml-wrapper` 初始化 NVML 并枚举设备 | PowerShell 执行 `Get-CimInstance Win32_VideoController` 并解析 JSON；未知厂商归为 `Other`；`AdapterRAM` 先安全解析为 `u64`，32 位上限按未知容量处理 | 不适用 |
 
-Linux sysfs 枚举会跳过 NVIDIA vendor ID，避免与 NVML 返回的 NVIDIA 设备重复。单个设备读取失败时不影响其他设备。
+Linux sysfs 枚举会跳过 NVIDIA vendor ID，避免与 NVML 返回的 NVIDIA 设备重复；其它无法识别的 vendor 归为 `Other`。单个设备读取失败时不影响其他设备。macOS 和 Windows 对已发现但无法识别的厂商同样保留设备记录并使用 `Other`。
 
 ## 数据流
 

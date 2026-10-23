@@ -30,6 +30,7 @@ pub enum AcceleratorKind {
     Amd,
     Intel,
     Apple,
+    Other,
 }
 
 /// Operating system represented by the current compilation target.

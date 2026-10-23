@@ -12,9 +12,9 @@ fn profile_accepts_numeric_boundaries_and_unknown_memory() {
         "memory_bytes": u64::MAX,
         "disk_available_bytes": 0,
         "accelerators": [{
-            "kind": "Apple",
-            "name": "",
-            "memory_bytes": null
+            "kind": "Other",
+            "name": "Unidentified accelerator",
+            "memory_bytes": 0
         }]
     });
     let profile = deserialize_profile(value).expect("valid boundary values should deserialize");
@@ -25,11 +25,28 @@ fn profile_accepts_numeric_boundaries_and_unknown_memory() {
     assert_eq!(
         profile.accelerators,
         vec![AcceleratorProfile {
-            kind: AcceleratorKind::Apple,
-            name: String::new(),
-            memory_bytes: None,
+            kind: AcceleratorKind::Other,
+            name: "Unidentified accelerator".to_owned(),
+            memory_bytes: Some(0),
         }]
     );
+}
+
+#[test]
+fn other_accelerator_is_a_valid_public_input() {
+    let value = json!({
+        "cpu": "Example CPU Model",
+        "memory_bytes": 1024,
+        "disk_available_bytes": 2048,
+        "accelerators": [{
+            "kind": "Other",
+            "name": "Vendor-neutral GPU",
+            "memory_bytes": null
+        }]
+    });
+
+    let profile = deserialize_profile(value).expect("Other should be accepted");
+    assert_eq!(profile.accelerators[0].kind, AcceleratorKind::Other);
 }
 
 #[test]

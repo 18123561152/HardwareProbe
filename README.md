@@ -16,9 +16,9 @@
 
 | 平台 | GPU 探测方式 | 相关系统依赖 |
 | --- | --- | --- |
-| Linux | NVIDIA 使用 NVML；AMD/Intel 通过 DRM sysfs | NVIDIA 驱动/NVML；`/sys/class/drm` |
+| Linux | NVIDIA 使用 NVML；AMD/Intel/Other 通过 DRM sysfs | NVIDIA 驱动/NVML；`/sys/class/drm` |
 | macOS | 解析 `system_profiler SPDisplaysDataType -json` | `system_profiler` |
-| Windows | NVIDIA 使用 NVML；AMD/Intel 通过 CIM 查询 | NVIDIA 驱动/NVML；PowerShell 和 `Get-CimInstance` |
+| Windows | NVIDIA 使用 NVML；AMD/Intel/Other 通过 CIM 查询 | NVIDIA 驱动/NVML；PowerShell 和 `Get-CimInstance` |
 
 GPU 信息依赖驱动、系统工具和权限，无法检测时加速器列表可能为空或不完整。Apple Silicon 使用统一内存，其 `memory_bytes` 输出系统物理内存总量，不代表独立 VRAM。其他操作系统会编译后备实现，调用探测接口时返回 `UnsupportedPlatform`。
 
@@ -72,7 +72,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 - `SystemHardwareProbe::inspect()`：异步返回 `Result<HardwareProfile, HardwareProbeError>`。
 - `HardwareProfile`：包含 `cpu`、`memory_bytes`、`disk_available_bytes` 和 `accelerators`。
 - `AcceleratorProfile`：包含 `kind`、`name` 和可选的 `memory_bytes`。
-- `AcceleratorKind`：加速器类别，包括 `Nvidia`、`Amd`、`Intel` 和 `Apple`。
+- `AcceleratorKind`：加速器类别，包括 `Nvidia`、`Amd`、`Intel`、`Apple` 和 `Other`。
 - `Platform`、`detect_platform()`、`current_os()`、`current_arch()`：提供编译目标平台信息。
 
 详细字段语义、错误说明和契约映射见[接口文档](docs/interface.md)。
