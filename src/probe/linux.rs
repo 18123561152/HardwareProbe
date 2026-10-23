@@ -103,7 +103,7 @@ fn read_vendor_id(device: &Path) -> Option<String> {
         .map(|vendor| vendor.trim().to_ascii_lowercase())
 }
 
-const fn classify_vendor(vendor: &str) -> AcceleratorKind {
+fn classify_vendor(vendor: &str) -> AcceleratorKind {
     match vendor {
         "0x1002" => AcceleratorKind::Amd,
         "0x8086" => AcceleratorKind::Intel,
